@@ -2,6 +2,21 @@
 
 Short notes on choices that aren't obvious from the code. Newest first.
 
+## Phase 3 — Auth and onboarding (2026-11-12)
+
+- **Auth stays on Supabase**, not Firebase. Supabase already does free Google + email sign-in, the RLS policies expect `auth.uid()`, and Firebase's Google provider never returns the refresh tokens that scheduled YouTube uploads need.
+- **`src/proxy.ts`** (Next 16 renamed middleware to proxy) refreshes the session on every request with `getClaims()`. It sends signed-out visitors from app pages to `/login?next=…`, and signed-in visitors from `/login` to `/home`. Pages re-check the session through the data access layer (`lib/auth.ts`), so the proxy is never the only guard.
+- **Cache Components.** Anything that reads the session sits behind `<Suspense>`, so the shell (sidebar, headers) is prerendered and the user's data streams in; the build marks these routes ◐. The server Supabase client reads `cookies()` before checking env vars, which lets the build prerender without secrets.
+- **Redirects are validated.** `safeNextPath` only accepts same-site relative paths, which blocks open redirects through `?next=`.
+- **Email sign-up.** Without custom SMTP, Supabase only sends confirmation emails to project team members. Either turn off "Confirm email" (Authentication → Sign In / Providers → Email) while testing, or add an SMTP provider. The sign-up form handles both cases.
+- **Onboarding.** The business row is created when the tone step is saved. Finishing the connect step sets `onboarding_done`. If someone leaves halfway, they come back to where they stopped. The connect step is a placeholder until Phase 6.
+- **Brand kit.**
+  - **Logos** upload straight from the browser to `brand-assets/<business_id>/logo-<time>.<ext>` through a signed upload URL issued by a Server Action. The previous logo file is then deleted.
+  - **Fonts** come from a curated list of Google Fonts. Some also cover Devanagari (Hindi and Marathi).
+  - **Text on brand colours** switches between ink and white, whichever gives better contrast.
+- **No platform logos.** Instagram, Facebook and YouTube are shown with neutral icons and their names; we don't redraw their logos.
+- **Dev previews.** `/dev/home`, `/dev/brand`, `/dev/accounts` and `/dev/onboarding` render the screens with mock data in development only (they return 404 in production). They're used for visual QA without a database session.
+
 ## Phase 2 — Database (2026-11-11)
 
 Reading the ER diagram:

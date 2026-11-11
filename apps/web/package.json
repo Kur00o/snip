@@ -8,16 +8,21 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "echo \"web: no tests yet\""
+    "test": "vitest run"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
     "@snip/agent": "workspace:*",
     "@snip/db": "workspace:*",
     "@snip/templates": "workspace:*",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.0",
+    "lucide-react": "^1.72.0",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
@@ -27,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
-    "typescript": "^5.9"
+    "typescript": "^5.9",
+    "vitest": "^5.1.0"
   }
 }

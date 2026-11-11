@@ -16,7 +16,7 @@ Student project. The entire stack runs at **₹0** on free tiers and open-source
 | ----- | ---------------------------------------------------------------------------- | ------ |
 | 1     | Setup: repo, Supabase, Vercel, monorepo scaffold                             | ✅     |
 | 2     | Database: migrations, RLS, Storage, Vault, seed templates                    | ✅     |
-| 3     | Auth and onboarding, brand kit, setup checklist                              |        |
+| 3     | Auth and onboarding, brand kit, setup checklist                              | ✅     |
 | 4     | Agent core: LLM router, orchestrator, streaming chat home                    |        |
 | 5     | Carousels: tools, HTML templates, Playwright worker, studio                  |        |
 | 6     | Scheduling and publishing: Meta + YouTube OAuth, calendar, Edge Function     |        |

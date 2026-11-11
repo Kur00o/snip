@@ -91,6 +91,44 @@
   }
 }
 
+/* Motion: one easing family (expo out), used sparingly. */
+@keyframes snip-rise {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes snip-fan {
+  from {
+    opacity: 0;
+    translate: 0 36px;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes snip-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.snip-rise {
+  animation: snip-rise 0.9s var(--ease-out-expo) both;
+}
+.snip-fan {
+  animation: snip-fan 1.1s var(--ease-out-expo) both;
+}
+.snip-caret {
+  animation: snip-blink 1s steps(1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

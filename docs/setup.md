@@ -14,6 +14,8 @@ pnpm dev                              # http://localhost:3000
 
 ## 2. Checks
 
+In development, `/dev/home`, `/dev/brand`, `/dev/accounts` and `/dev/onboarding` preview the app screens with mock data. No sign-in is needed.
+
 ```bash
 pnpm check        # prettier + eslint + tsc + vitest
 pnpm build        # production build of apps/web
@@ -41,7 +43,16 @@ npx supabase functions deploy publish
 
 Running the full local Supabase stack needs Docker and is heavy on an 8 GB laptop, so develop against the hosted project instead.
 
-## 4. Vercel (one-time import)
+## 4. Supabase Auth settings
+
+1. **Authentication → URL Configuration.** Set the Site URL to your Vercel URL. Add `http://localhost:3000/**` and `https://<your-vercel-domain>/**` to the Redirect URLs.
+2. **Google sign-in.**
+   1. In Google Cloud Console, create an OAuth client (Web application).
+   2. Set the authorised redirect URI to `https://vojyxsrlxxrmusrabeem.supabase.co/auth/v1/callback`.
+   3. Paste the client ID and secret into Authentication → Sign In / Providers → Google.
+3. **Email sign-up.** Without custom SMTP, confirmation emails only reach project team members. For testing, turn off "Confirm email" under Providers → Email, or add an SMTP provider (Resend and Brevo both have free tiers).
+
+## 5. Vercel (one-time import)
 
 1. Go to <https://vercel.com/new> and import `Kur00o/snip` from GitHub.
 2. **Root Directory:** `apps/web`. Leave "Include files outside the root directory" **on**, because the app uses `packages/*`.
@@ -49,7 +60,7 @@ Running the full local Supabase stack needs Docker and is heavy on an 8 GB lapto
 4. Add the environment variables from `.env.example` (only the web ones) under Settings → Environment Variables.
 5. Deploy. From then on, every push to `main` redeploys automatically, and pull requests get preview URLs.
 
-## 5. API keys you will need (later phases)
+## 6. API keys you will need (later phases)
 
 | Key                    | Where                                  | Phase                  |
 | ---------------------- | -------------------------------------- | ---------------------- |
