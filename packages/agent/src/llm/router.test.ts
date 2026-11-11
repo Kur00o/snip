@@ -32,6 +32,7 @@ const config = (id: ProviderConfig["id"], models = [`${id}-model`]): ProviderCon
   models,
   supportsTools: true,
   supportsVision: id === "gemini",
+  supportsJsonMode: true,
 });
 
 async function collect(stream: AsyncIterable<StreamEvent>) {

@@ -1,48 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { BrandContext, renderBrandContext } from "./brand/context";
-import type { LlmStreamer, RouteRequest, StreamEvent } from "./llm/types";
+import type { StreamEvent } from "./llm/types";
 import { historyFromRows, runAgent, type AgentEvent } from "./orchestrator";
-import { systemPrompt } from "./prompts/system";
+import { PHASE_4_CAPABILITIES, systemPrompt } from "./prompts/system";
+import { fakeLlm, fakeServices, finish, testBrand as brand, toolContext } from "./testing";
 import { executeTool, toToolSpec } from "./tools/define";
 import { offerOptions } from "./tools/offer-options";
-
-const brand = BrandContext.parse({
-  businessName: "Chai Point",
-  category: "Café",
-  city: "Pune",
-  audience: "Students near FC Road",
-  goals: ["Grow followers"],
-  tone: "friendly",
-  colours: { primary: "#0F9D8F", accent: "#C6F432" },
-  fonts: { heading: "Fraunces" },
-  hasLogo: false,
-  bannedWords: ["cheap"],
-});
-
-/** Fake LLM that replays one scripted step per call and records the requests. */
-function fakeLlm(steps: StreamEvent[][]) {
-  const requests: RouteRequest[] = [];
-  const llm: LlmStreamer = {
-    async *stream(request) {
-      requests.push(structuredClone({ ...request, signal: undefined }));
-      for (const event of steps.shift() ?? []) yield event;
-    },
-  };
-  return { llm, requests };
-}
-
-const finish: StreamEvent = {
-  type: "finish",
-  provider: "gemini",
-  model: "gemini-test",
-  reason: "stop",
-};
 
 async function collect(stream: AsyncIterable<AgentEvent>) {
   const events: AgentEvent[] = [];
   for await (const e of stream) events.push(e);
   return events;
 }
+
+const run = (llm: ReturnType<typeof fakeLlm>["llm"], userMessage: string) =>
+  runAgent({
+    llm,
+    brand,
+    businessId: "b1",
+    services: fakeServices().services,
+    history: [],
+    userMessage,
+  });
 
 describe("brand context", () => {
   it("renders a compact brief with banned words and a first-post note", () => {
@@ -57,15 +36,21 @@ describe("brand context", () => {
     expect(BrandContext.safeParse({ businessName: "" }).success).toBe(false);
   });
 
-  it("goes into the system prompt with the one-question rule", () => {
+  it("goes into the system prompt with the one-question rule and carousel tools", () => {
     const prompt = systemPrompt(brand);
     expect(prompt).toContain("Chai Point");
     expect(prompt).toContain("exactly ONE focused question");
-    expect(prompt).toContain("cannot design carousel images");
+    expect(prompt).toContain("plan_carousel");
+    expect(prompt).toContain("cannot edit Reels");
+    expect(systemPrompt(brand, PHASE_4_CAPABILITIES)).toContain("cannot design carousel images");
+    expect(systemPrompt(brand, undefined, new Date(), "Carousel post-1 (2 slides)")).toContain(
+      "The carousel in this chat",
+    );
   });
 });
 
 describe("offer_options tool", () => {
+  const ctx = toolContext(fakeLlm([]).llm, fakeServices().services);
   const args = (o: unknown) => JSON.stringify(o);
   const valid = {
     question: "Where should this go?",
@@ -86,7 +71,6 @@ describe("offer_options tool", () => {
   });
 
   it("accepts 2 to 4 options and rejects anything else", async () => {
-    const ctx = { businessId: "b1" };
     await expect(
       executeTool([offerOptions], "offer_options", args(valid), ctx),
     ).resolves.toMatchObject({
@@ -110,16 +94,19 @@ describe("offer_options tool", () => {
 describe("runAgent", () => {
   it("streams a plain answer", async () => {
     const { llm, requests } = fakeLlm([[{ type: "text", delta: "Here's a caption" }, finish]]);
-    const events = await collect(
-      runAgent({ llm, brand, businessId: "b1", history: [], userMessage: "Write a caption" }),
-    );
+    const events = await collect(run(llm, "Write a caption"));
     expect(events.at(-1)).toMatchObject({
       type: "done",
       text: "Here's a caption",
       provider: "gemini",
     });
     expect(requests[0]?.messages[0]?.role).toBe("system");
-    expect(requests[0]?.tools?.[0]?.function.name).toBe("offer_options");
+    expect(requests[0]?.tools?.map((t) => t.function.name)).toEqual([
+      "offer_options",
+      "plan_carousel",
+      "write_caption_and_hashtags",
+      "edit_carousel",
+    ]);
   });
 
   it("ends the turn after offer_options so the user can tap a choice", async () => {
@@ -146,15 +133,7 @@ describe("runAgent", () => {
       ],
       [{ type: "text", delta: "should not run" }, finish],
     ]);
-    const events = await collect(
-      runAgent({
-        llm,
-        brand,
-        businessId: "b1",
-        history: [],
-        userMessage: "Make something for Diwali",
-      }),
-    );
+    const events = await collect(run(llm, "Make something for Diwali"));
     expect(requests).toHaveLength(1);
     const tool = events.find((e) => e.type === "tool");
     expect(tool).toMatchObject({ outcome: { ok: true, name: "offer_options", output: options } });
@@ -174,19 +153,67 @@ describe("runAgent", () => {
       ],
       [{ type: "text", delta: "Carousel or Reel?" }, finish],
     ]);
-    const events = await collect(
-      runAgent({ llm, brand, businessId: "b1", history: [], userMessage: "Help" }),
-    );
+    const events = await collect(run(llm, "Help"));
     expect(requests).toHaveLength(2);
     const toolMessage = requests[1]?.messages.at(-1);
     expect(toolMessage).toMatchObject({ role: "tool", tool_call_id: "c1" });
     expect(String((toolMessage as { content: string }).content)).toContain("error");
     expect(events.at(-1)).toMatchObject({ type: "done", text: "Carousel or Reel?" });
   });
+
+  it("runs plan_carousel, then the caption tool, then answers", async () => {
+    const plan = JSON.stringify({
+      title: "Monsoon menu",
+      slides: [
+        { headline: "The monsoon menu is here", body: "Rainy days, sorted." },
+        { headline: "Masala chai + vada pav", body: "[price] till 7pm", price: "[price]" },
+        { headline: "Come in from the rain", body: "", cta: "Visit FC Road" },
+      ],
+    });
+    const caption = JSON.stringify({
+      caption: "Rain outside, chai inside ☕",
+      hashtags: ["#punecafe", "#monsoon", "#chai", "#fcroad", "#punefood"],
+    });
+    const call = (id: string, name: string, args: unknown): StreamEvent => ({
+      type: "tool_calls",
+      calls: [{ id, type: "function", function: { name, arguments: JSON.stringify(args) } }],
+    });
+    const { llm } = fakeLlm([
+      [call("c1", "plan_carousel", { brief: "Monsoon menu launch", slideCount: 3 }), finish],
+      plan,
+      [
+        call("c2", "write_caption_and_hashtags", {
+          brief: "Monsoon menu launch",
+          postId: "post-1",
+        }),
+        finish,
+      ],
+      caption,
+      "Your monsoon carousel is ready in the studio.",
+    ]);
+    const { services, posts } = fakeServices();
+    const events = await collect(
+      runAgent({
+        llm,
+        brand,
+        businessId: "b1",
+        services,
+        history: [],
+        userMessage: "Carousel for our monsoon menu",
+      }),
+    );
+    const done = events.at(-1);
+    expect(done).toMatchObject({
+      type: "done",
+      text: "Your monsoon carousel is ready in the studio.",
+    });
+    expect(posts.get("post-1")?.slides).toHaveLength(3);
+    expect(posts.get("post-1")?.caption).toBe("Rain outside, chai inside ☕");
+  });
 });
 
 describe("historyFromRows", () => {
-  it("keeps the latest turns and summarises offered options", () => {
+  it("keeps the latest turns and summarises tools", () => {
     const rows = [
       { role: "user", content: "old", tool_calls: null },
       { role: "user", content: "Make a post", tool_calls: null },
@@ -202,12 +229,21 @@ describe("historyFromRows", () => {
               options: [{ label: "Carousel" }, { label: "Reel" }],
             },
           },
+          {
+            ok: true,
+            name: "plan_carousel",
+            output: { postId: "p1", title: "Menu", slides: [{ headline: "Hi" }] },
+          },
         ],
       },
     ];
     expect(historyFromRows(rows, 2)).toEqual([
       { role: "user", content: "Make a post" },
-      { role: "assistant", content: "[I asked: Which format? Options: Carousel / Reel]" },
+      {
+        role: "assistant",
+        content:
+          '[I asked: Which format? Options: Carousel / Reel]\n[Created carousel p1 "Menu": 1. Hi]',
+      },
     ]);
   });
 });

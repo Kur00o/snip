@@ -1,11 +1,20 @@
 import type { BrandContext } from "./brand/context";
 import type { ChatMessage, LlmStreamer, ToolCall } from "./llm/types";
 import { systemPrompt, type Capabilities } from "./prompts/system";
+import type { AgentServices } from "./services";
 import type { Provider } from "./types";
 import { executeTool, toToolSpec, type AgentTool, type ToolOutcome } from "./tools/define";
+import { writeCaption } from "./tools/caption";
+import { editCarousel } from "./tools/edit-carousel";
 import { offerOptions } from "./tools/offer-options";
+import { planCarousel } from "./tools/plan-carousel";
 
-export const DEFAULT_TOOLS: AgentTool[] = [offerOptions as AgentTool];
+export const DEFAULT_TOOLS: AgentTool[] = [
+  offerOptions,
+  planCarousel,
+  writeCaption,
+  editCarousel,
+] as AgentTool[];
 
 export type AgentEvent =
   | { type: "text"; delta: string }
@@ -22,6 +31,9 @@ export type RunAgentOptions = {
   llm: LlmStreamer;
   brand: BrandContext;
   businessId: string;
+  services: AgentServices;
+  /** Text description of the carousel being worked on in this chat, if any. */
+  activeCarousel?: string | null;
   /** Earlier turns, oldest first, already trimmed to a sensible window. */
   history: ChatMessage[];
   userMessage: string;
@@ -41,7 +53,15 @@ export async function* runAgent(options: RunAgentOptions): AsyncGenerator<AgentE
   const specs = tools.map(toToolSpec);
   const maxSteps = options.maxSteps ?? 4;
   const messages: ChatMessage[] = [
-    { role: "system", content: systemPrompt(options.brand, options.capabilities) },
+    {
+      role: "system",
+      content: systemPrompt(
+        options.brand,
+        options.capabilities,
+        new Date(),
+        options.activeCarousel,
+      ),
+    },
     ...options.history,
     { role: "user", content: options.userMessage },
   ];
@@ -80,6 +100,9 @@ export async function* runAgent(options: RunAgentOptions): AsyncGenerator<AgentE
     for (const call of calls) {
       const outcome = await executeTool(tools, call.function.name, call.function.arguments, {
         businessId: options.businessId,
+        llm: options.llm,
+        brand: options.brand,
+        services: options.services,
         signal: options.signal,
       });
       outcomes.push(outcome);
@@ -117,21 +140,40 @@ export function historyFromRows(
   return out;
 }
 
+type StoredOutcome = {
+  ok?: boolean;
+  name?: string;
+  output?: {
+    question?: string;
+    options?: { label: string }[];
+    postId?: string;
+    title?: string;
+    slides?: { headline: string }[];
+    changed?: number[];
+    caption?: string;
+  };
+};
+
 function summariseTools(value: unknown): string {
   if (!Array.isArray(value)) return "";
-  return value
-    .map(
-      (t: {
-        ok?: boolean;
-        name?: string;
-        output?: { question?: string; options?: { label: string }[] };
-      }) => {
-        if (t?.ok && t.name === "offer_options" && t.output?.options) {
-          return `[I asked: ${t.output.question} Options: ${t.output.options.map((o) => o.label).join(" / ")}]`;
-        }
-        return t?.ok && t.name ? `[Used ${t.name}]` : "";
-      },
-    )
+  return (value as StoredOutcome[])
+    .map((t) => {
+      const o = t?.output;
+      if (!t?.ok || !t.name) return "";
+      if (t.name === "offer_options" && o?.options) {
+        return `[I asked: ${o.question} Options: ${o.options.map((x) => x.label).join(" / ")}]`;
+      }
+      if (t.name === "plan_carousel" && o?.postId) {
+        return `[Created carousel ${o.postId} "${o.title ?? ""}": ${(o.slides ?? []).map((s, i) => `${i + 1}. ${s.headline}`).join(" ")}]`;
+      }
+      if (t.name === "edit_carousel" && o?.postId) {
+        return `[Edited carousel ${o.postId}, slides ${(o.changed ?? []).join(", ")}]`;
+      }
+      if (t.name === "write_caption_and_hashtags") {
+        return `[Wrote caption${o?.postId ? ` for ${o.postId}` : ""}: ${(o?.caption ?? "").slice(0, 120)}]`;
+      }
+      return `[Used ${t.name}]`;
+    })
     .filter(Boolean)
     .join("\n");
 }

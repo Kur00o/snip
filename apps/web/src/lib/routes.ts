@@ -5,6 +5,8 @@ export const PROTECTED_PREFIXES = [
   "/brand",
   "/accounts",
   "/chat",
+  "/studio",
+  "/posts",
   "/create",
   "/calendar",
   "/insights",

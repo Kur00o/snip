@@ -1,8 +1,15 @@
-import { AllProvidersFailedError, historyFromRows, loadBrandContext, runAgent } from "@snip/agent";
+import {
+  AllProvidersFailedError,
+  describeCarousel,
+  historyFromRows,
+  loadBrandContext,
+  runAgent,
+} from "@snip/agent";
 import type { Json } from "@snip/db";
 import { z } from "zod";
 import { getRouter, supabaseBrandSource } from "@/lib/agent";
 import { getMyBusiness, getSessionUser } from "@/lib/auth";
+import { supabaseAgentServices } from "@/lib/carousel";
 import { encodeSSE, type ToolOutcomeData } from "@/lib/sse";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,6 +17,8 @@ export const maxDuration = 60;
 
 const Body = z.object({
   conversationId: z.uuid().optional(),
+  /** Set by the carousel studio: the post being edited. */
+  postId: z.uuid().optional(),
   message: z
     .string()
     .trim()
@@ -84,6 +93,22 @@ export async function POST(request: Request) {
   if (saved.error) return json(500, "Couldn't save your message. Please try again.");
 
   const brand = await loadBrandContext(supabaseBrandSource(supabase, business));
+  const services = supabaseAgentServices(supabase, business, conversationId);
+
+  // The carousel this chat is about: the studio's post, or the latest one made in this chat.
+  let activePostId = parsed.data.postId ?? null;
+  if (!activePostId) {
+    const { data: latest } = await supabase
+      .from("posts")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .eq("type", "carousel")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    activePostId = latest?.id ?? null;
+  }
+  const active = activePostId ? await services.getCarousel(activePostId) : null;
   const convId = conversationId;
 
   const stream = new ReadableStream<Uint8Array>({
@@ -102,6 +127,8 @@ export async function POST(request: Request) {
           llm: getRouter(),
           brand,
           businessId: business.id,
+          services,
+          activeCarousel: active ? describeCarousel(active) : null,
           history,
           userMessage: message,
           signal: request.signal,

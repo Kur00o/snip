@@ -14,20 +14,21 @@ pnpm dev                              # http://localhost:3000
 
 ## 2. Checks
 
-In development, `/dev/home`, `/dev/brand`, `/dev/accounts` and `/dev/onboarding` preview the app screens with mock data. No sign-in is needed.
+In development, `/dev/home`, `/dev/studio`, `/dev/brand`, `/dev/accounts` and `/dev/onboarding` preview the app screens with mock data. No sign-in is needed.
 
 ```bash
 pnpm check        # prettier + eslint + tsc + vitest
 pnpm build        # production build of apps/web
 ```
 
-Worker:
+Worker (it renders carousel PNGs; see `apps/worker/README.md`):
 
 ```bash
 cd apps/worker
 uv sync
+uv run playwright install chromium     # one time
 uv run ruff check . && uv run mypy app && uv run pytest
-uv run uvicorn app.main:app --reload --port 8000
+uv run python -m app.cli               # needs SUPABASE_URL + SUPABASE_SECRET_KEY in apps/worker/.env
 ```
 
 ## 3. Supabase

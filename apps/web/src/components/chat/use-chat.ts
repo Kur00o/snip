@@ -17,6 +17,10 @@ type Options = {
   conversationId?: string | null;
   initialMessages?: UiMessage[];
   onConversation?: (id: string) => void;
+  /** Extra fields sent with every message, e.g. { postId } from the studio. */
+  extraBody?: Record<string, string>;
+  /** Called after each completed reply (used by the studio to reload slides). */
+  onTurnDone?: (message: UiMessage) => void;
 };
 
 const newId = () =>
@@ -30,6 +34,8 @@ export function useChat({
   conversationId: initialId = null,
   initialMessages = [],
   onConversation,
+  extraBody,
+  onTurnDone,
 }: Options) {
   const [messages, setMessages] = useState<UiMessage[]>(initialMessages);
   const [conversationId, setConversationId] = useState<string | null>(initialId);
@@ -55,6 +61,14 @@ export function useChat({
       abortRef.current = controller;
 
       const fail = (error: string) => patch(assistantId, (m) => ({ ...m, status: "error", error }));
+      // Local copy of the reply, so callbacks never run inside a state updater.
+      let reply: UiMessage = {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        tools: [],
+        status: "streaming",
+      };
 
       try {
         const response = await fetch(endpoint, {
@@ -62,6 +76,7 @@ export function useChat({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message,
+            ...extraBody,
             ...(conversationRef.current ? { conversationId: conversationRef.current } : {}),
           }),
           signal: controller.signal,
@@ -83,11 +98,16 @@ export function useChat({
             }
           } else if (event === "delta" && typeof payload.text === "string") {
             const delta = payload.text;
+            reply = { ...reply, content: reply.content + delta };
             patch(assistantId, (m) => ({ ...m, content: m.content + delta }));
           } else if (event === "tool") {
-            patch(assistantId, (m) => ({ ...m, tools: [...m.tools, payload as ToolOutcomeData] }));
+            const tool = payload as ToolOutcomeData;
+            reply = { ...reply, tools: [...reply.tools, tool] };
+            patch(assistantId, (m) => ({ ...m, tools: [...m.tools, tool] }));
           } else if (event === "done") {
+            reply = { ...reply, status: "done" };
             patch(assistantId, (m) => ({ ...m, status: "done" }));
+            onTurnDone?.(reply);
           } else if (event === "error") {
             fail(typeof payload.message === "string" ? payload.message : "Something went wrong.");
           }
@@ -105,7 +125,7 @@ export function useChat({
         setBusy(false);
       }
     },
-    [endpoint, onConversation],
+    [endpoint, onConversation, extraBody, onTurnDone],
   );
 
   const stop = useCallback(() => abortRef.current?.abort(), []);

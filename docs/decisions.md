@@ -2,6 +2,45 @@
 
 Short notes on choices that aren't obvious from the code. Newest first.
 
+## Phase 5 — Carousels (2026-11-12)
+
+- **Templates are TypeScript, not .html files** (`packages/templates`). `renderSlide()` returns a complete, self-contained 1080×1350 HTML document. The same function drives three things:
+  - the studio's live preview (a sandboxed iframe, so it updates as you type and needs no worker)
+  - the post cards in the Posts list
+  - the HTML sent to the worker
+
+  This way the preview and the final PNG can't drift apart.
+
+- **Five layouts:** Bold statement, Numbered tips, Quote card, Product spotlight, Offer + CTA.
+  - **Colour themes.** Each layout comes in three colour themes: the brand's main colour, its light colour, or dark.
+  - **Contrast is computed.** Text always reaches 4.5:1 against its background; the accent colour is only used where it reaches 3:1, otherwise text colour is used.
+  - **Escaping.** All text is HTML-escaped, and only http(s) URLs can reach an `src` attribute.
+- **Agent tools.** All three validate their input and output with Zod, and generate content through `completeJson`, which gives the model one retry with the validation error.
+  - `plan_carousel` writes the copy using the bulk-text route (NVIDIA first, then Gemini). It saves the post and slides and queues a render.
+  - `write_caption_and_hashtags` normalises hashtags, rejects banned words and saves the result onto the post.
+  - `edit_carousel` applies the orchestrator's own edits ("make slide 2 shorter") with 1-based slide numbers, so it needs no extra LLM call.
+
+  The orchestrator sees the chat's latest carousel in its prompt. Tools reach the database through an `AgentServices` interface: Supabase in the app, in-memory fakes in tests.
+
+- **JSON mode** is only sent to providers that support it (Gemini, Ollama). NVIDIA gets the instruction in the prompt instead, and `<think>` blocks are stripped before parsing.
+- **Slides are stored** in `slides.headline`, `slides.body` and `slides.layout = {template, theme, slots}`. Replacing them updates rows in place, then adds or deletes rows, so a carousel is never left empty. Editing clears `image_path`, because those PNGs are now out of date.
+  - We skipped a `replace_slides` SQL function and a `posts.title` column, because both migrations need a destructive-change confirmation that doesn't reach this chat. The title is the cover headline.
+- **Rendering flow.** The job payload carries pre-rendered HTML, so the Python worker only takes screenshots. The worker:
+  - skips slides that were deleted after the job was queued
+  - deletes the previous PNG of each slide (free Storage is 1 GB)
+  - moves the post from draft to `review`
+
+  The studio polls every 3 s while a job is queued. After 45 s it explains that the worker probably isn't running.
+
+- **Worker's Supabase client.** It talks to Supabase's REST and Storage APIs directly with `httpx`, rather than through the Supabase SDK. That keeps it light on an 8 GB laptop. New `sb_secret_` keys go only in the `apikey` header; legacy JWT keys also go in `Authorization`.
+- **Studio.**
+  - Live preview, plus a thumbnail strip where you can add, duplicate, reorder and delete slides (up to 10).
+  - Per slide: layout, colour theme, headline/text and the layout's own fields. Edits autosave after 700 ms.
+  - A caption and hashtag editor with Copy.
+  - An "Ask Snip" chat tab that sends `postId`, so the agent edits this carousel. The studio reloads when a reply finishes.
+  - Render PNGs, Approve, and per-slide download links once the PNGs are ready.
+- **Posts page** (`/posts`) lists every carousel with its live cover and status.
+
 ## Phase 4 — Agent core (2026-11-12)
 
 - **One router for every model call** (`packages/agent/src/llm/router.ts`). It speaks the OpenAI chat format through the `openai` SDK pointed at each provider's OpenAI-compatible URL. Switching models means changing an env var, or one line in `providers.ts`.

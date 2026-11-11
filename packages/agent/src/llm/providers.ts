@@ -21,6 +21,7 @@ export function providersFromEnv(env: Env): ProviderConfig[] {
       models: unique([env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-2.5-flash"]),
       supportsTools: true,
       supportsVision: true,
+      supportsJsonMode: true,
       extraBody: geminiExtras(env.GEMINI_REASONING_EFFORT),
     },
     {
@@ -34,6 +35,7 @@ export function providersFromEnv(env: Env): ProviderConfig[] {
       ]),
       supportsTools: true,
       supportsVision: false,
+      supportsJsonMode: false,
     },
   ];
   if (env.OLLAMA_MODEL) {
@@ -44,6 +46,7 @@ export function providersFromEnv(env: Env): ProviderConfig[] {
       models: [env.OLLAMA_MODEL],
       supportsTools: true,
       supportsVision: false,
+      supportsJsonMode: true,
     });
   }
   return providers;

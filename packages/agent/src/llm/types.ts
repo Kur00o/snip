@@ -67,6 +67,8 @@ export type ProviderConfig = {
   models: string[];
   supportsTools: boolean;
   supportsVision: boolean;
+  /** Accepts response_format: json_object (otherwise JSON is requested in the prompt only). */
+  supportsJsonMode: boolean;
   /** Provider-specific request fields, e.g. Gemini's reasoning_effort. */
   extraBody?: Record<string, unknown>;
 };

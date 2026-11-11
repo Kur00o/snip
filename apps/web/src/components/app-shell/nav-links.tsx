@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CalendarDays, Home, Link2, Palette } from "lucide-react";
+import { BarChart3, CalendarDays, Home, LayoutGrid, Link2, Palette } from "lucide-react";
 import { cn } from "@/components/ui/cn";
 
 export const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: Home, soon: false },
+  { href: "/posts", label: "Posts", icon: LayoutGrid, soon: false },
   { href: "/calendar", label: "Calendar", icon: CalendarDays, soon: true },
   { href: "/insights", label: "Insights", icon: BarChart3, soon: true },
   { href: "/brand", label: "Brand kit", icon: Palette, soon: false },
@@ -82,7 +83,7 @@ export function TabBar() {
 
 export function TabBarItems({ isActive = none }: { isActive?: ActiveCheck }) {
   return (
-    <ul className="grid grid-cols-3">
+    <ul className="grid grid-cols-4">
       {NAV_ITEMS.filter((i) => !i.soon).map(({ href, label, icon: Icon }) => {
         const active = isActive(href);
         return (

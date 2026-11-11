@@ -1,5 +1,27 @@
 import { z } from "zod";
 
+export { escapeHtml, fillSlots, googleFontsUrl, safeUrl } from "./html";
+export {
+  Hex,
+  SlideBrand,
+  SLIDE_THEMES,
+  type SlideTheme,
+  type Palette,
+  contrast,
+  readableOn,
+  paletteFor,
+} from "./theme";
+export {
+  CAROUSEL_TEMPLATES,
+  CarouselTemplateId,
+  TEMPLATE_LABELS,
+  SlideContent,
+  defaultTemplateFor,
+  headlineSize,
+  renderSlide,
+  templateIdFromPath,
+} from "./carousel";
+
 /** Carousel slide size used everywhere (Instagram portrait 4:5). */
 export const SLIDE_SIZE = { width: 1080, height: 1350 } as const;
 
@@ -25,19 +47,3 @@ export const TemplateManifest = z.object({
   isSystem: z.boolean().default(true),
 });
 export type TemplateManifest = z.infer<typeof TemplateManifest>;
-
-/** Replace `{{slot}}` placeholders. Unknown placeholders are left untouched; values are HTML-escaped. */
-export function fillSlots(html: string, values: Record<string, string>): string {
-  return html.replace(/\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/g, (match, key: string) =>
-    key in values ? escapeHtml(values[key] ?? "") : match,
-  );
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}

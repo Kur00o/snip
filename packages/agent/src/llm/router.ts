@@ -138,7 +138,7 @@ export class LlmRouter implements LlmStreamer {
     if (request.tools?.length) params.tools = request.tools;
     if (request.temperature !== undefined) params.temperature = request.temperature;
     if (request.maxTokens !== undefined) params.max_tokens = request.maxTokens;
-    if (request.json) params.response_format = { type: "json_object" };
+    if (request.json && provider.supportsJsonMode) params.response_format = { type: "json_object" };
 
     const pending = new Map<number, { id: string; name: string; arguments: string }>();
     let reason: string | null = null;

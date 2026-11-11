@@ -7,6 +7,7 @@ import type { ToolOutcomeData } from "@/lib/sse";
 import type { Starter } from "@/lib/starters";
 import { PromptBox } from "./prompt-box";
 import { RichText } from "./rich-text";
+import { ToolCards } from "./tool-cards";
 import { useChat, type ChatController, type UiMessage } from "./use-chat";
 
 export type ChatEmptyState = {
@@ -24,6 +25,11 @@ type Props = {
   empty?: ChatEmptyState;
   /** Move the address bar to /chat/<id> once the first reply starts (default on). */
   syncUrl?: boolean;
+  /** "panel" fits inside a side panel (the carousel studio). */
+  variant?: "page" | "panel";
+  extraBody?: Record<string, string>;
+  onTurnDone?: (message: UiMessage) => void;
+  placeholder?: string;
 };
 
 /** Chat-first home and chat thread in one: hero + starters until the first message. */
@@ -33,6 +39,10 @@ export function ChatScreen({
   endpoint,
   empty,
   syncUrl = true,
+  variant = "page",
+  extraBody,
+  onTurnDone,
+  placeholder,
 }: Props) {
   const [prompt, setPrompt] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -43,6 +53,8 @@ export function ChatScreen({
     onConversation: syncUrl
       ? (id) => window.history.replaceState(null, "", `/chat/${id}`)
       : undefined,
+    extraBody,
+    onTurnDone,
   });
 
   const submit = (text = prompt) => {
@@ -87,9 +99,23 @@ export function ChatScreen({
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-9rem)] w-full max-w-3xl flex-col md:min-h-[calc(100svh-5rem)]">
-      <Thread chat={chat} onPick={(reply) => submit(reply)} />
-      <div className="sticky bottom-16 z-10 mt-6 bg-gradient-to-t from-paper via-paper to-transparent pt-4 pb-3 md:bottom-0 md:pb-4">
+    <div
+      className={cn(
+        "flex w-full flex-col",
+        variant === "page"
+          ? "mx-auto min-h-[calc(100svh-9rem)] max-w-3xl md:min-h-[calc(100svh-5rem)]"
+          : "h-full min-h-0",
+      )}
+    >
+      <div className={cn(variant === "panel" && "min-h-0 flex-1 overflow-y-auto px-1 pt-2")}>
+        <Thread chat={chat} onPick={(reply) => submit(reply)} showStudioLink={variant === "page"} />
+      </div>
+      <div
+        className={cn(
+          "z-10 bg-gradient-to-t from-paper via-paper to-transparent pt-4",
+          variant === "page" ? "sticky bottom-16 mt-6 pb-3 md:bottom-0 md:pb-4" : "pb-1",
+        )}
+      >
         <PromptBox
           ref={inputRef}
           size="md"
@@ -98,8 +124,8 @@ export function ChatScreen({
           onSubmit={() => submit()}
           busy={chat.busy}
           onStop={chat.stop}
-          placeholder="Reply to Snip…"
-          autoFocus
+          placeholder={placeholder ?? "Reply to Snip…"}
+          autoFocus={variant === "page"}
         />
       </div>
     </div>
@@ -142,7 +168,15 @@ function Starters({ starters, onPick }: { starters: Starter[]; onPick: (s: Start
   );
 }
 
-function Thread({ chat, onPick }: { chat: ChatController; onPick: (reply: string) => void }) {
+function Thread({
+  chat,
+  onPick,
+  showStudioLink,
+}: {
+  chat: ChatController;
+  onPick: (reply: string) => void;
+  showStudioLink: boolean;
+}) {
   const endRef = useRef<HTMLDivElement>(null);
   const last = chat.messages.at(-1);
 
@@ -171,6 +205,7 @@ function Thread({ chat, onPick }: { chat: ChatController; onPick: (reply: string
               canPick={i === chat.messages.length - 1 && !chat.busy}
               onPick={onPick}
               onRetry={chat.retry}
+              showStudioLink={showStudioLink}
             />
           )}
         </li>
@@ -185,11 +220,13 @@ function AssistantMessage({
   canPick,
   onPick,
   onRetry,
+  showStudioLink,
 }: {
   message: UiMessage;
   canPick: boolean;
   onPick: (reply: string) => void;
   onRetry: () => void;
+  showStudioLink: boolean;
 }) {
   const options = message.tools.find(
     (t): t is Extract<ToolOutcomeData, { ok: true }> => t.ok && t.name === "offer_options",
@@ -250,6 +287,7 @@ function AssistantMessage({
             </div>
           </div>
         )}
+        <ToolCards tools={message.tools} showStudioLink={showStudioLink} />
         {message.status === "error" && (
           <div
             role="alert"

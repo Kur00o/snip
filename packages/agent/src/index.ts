@@ -29,7 +29,23 @@ export {
   renderBrandContext,
   type BrandContextSource,
 } from "./brand/context";
-export { systemPrompt, PHASE_4_CAPABILITIES, type Capabilities } from "./prompts/system";
+export {
+  systemPrompt,
+  PHASE_4_CAPABILITIES,
+  CURRENT_CAPABILITIES,
+  type Capabilities,
+} from "./prompts/system";
+export {
+  SlideRecord,
+  describeCarousel,
+  type AgentServices,
+  type CarouselDraft,
+  type CarouselSnapshot,
+} from "./services";
+export { completeJson, extractJson, InvalidModelOutputError } from "./llm/json";
+export { planCarousel, planToSlides, CarouselPlan, PlanCarouselInput } from "./tools/plan-carousel";
+export { writeCaption, normaliseHashtag, buildCaptionSchema } from "./tools/caption";
+export { editCarousel, EditCarouselInput } from "./tools/edit-carousel";
 
 export {
   defineTool,

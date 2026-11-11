@@ -1,7 +1,18 @@
 import { z } from "zod";
 import type { ToolSpec } from "../llm/types";
 
-export type ToolContext = { businessId: string; signal?: AbortSignal };
+import type { BrandContext } from "../brand/context";
+import type { LlmStreamer } from "../llm/types";
+import type { AgentServices } from "../services";
+
+/** Everything a tool can use. The orchestrator builds this for every turn. */
+export type ToolContext = {
+  businessId: string;
+  llm: LlmStreamer;
+  brand: BrandContext;
+  services: AgentServices;
+  signal?: AbortSignal;
+};
 
 export type AgentTool<I extends z.ZodType = z.ZodType, O extends z.ZodType = z.ZodType> = {
   name: string;

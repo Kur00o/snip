@@ -18,10 +18,40 @@ export async function POST(request: Request) {
       await wait(500);
       const text = firstTurn
         ? "Love it, the monsoon menu deserves a proper launch. Quick one:"
-        : "Here's a 5-slide **Instagram carousel** for Chai Point:\n\n1. **The monsoon menu is here** – Rainy evenings just got cosier.\n2. **Masala chai + vada pav** – Hot, crisp, ₹[price] till 7pm.\n3. **Kanda bhaji platter** – Made to share (or not).\n4. **Ginger lemon honey tea** – For the sniffles season.\n5. **Come in from the rain** – FC Road, open till 11pm.\n\nCaption: Rain outside, chai inside ☕ Our monsoon menu is finally here.\n\n#punecafe #monsoonvibes #chailovers #fcroad #punefoodie";
+        : "Your monsoon carousel is ready. I kept the price as [price] on slide 2, so add it in the studio.";
       for (const word of text.split(/(?<= )/)) {
         controller.enqueue(encodeSSE("delta", { text: word }));
         await wait(25);
+      }
+      if (!firstTurn) {
+        const plan = {
+          postId: "00000000-0000-4000-8000-000000000009",
+          title: "Monsoon menu launch",
+          slides: [
+            { headline: "The monsoon menu is here", body: "" },
+            { headline: "Masala chai + vada pav", body: "" },
+            { headline: "Kanda bhaji platter", body: "" },
+            { headline: "Ginger lemon honey", body: "" },
+            { headline: "Come in from the rain", body: "" },
+          ],
+        };
+        controller.enqueue(
+          encodeSSE("tool", { ok: true, name: "plan_carousel", input: {}, output: plan }),
+        );
+        const caption = {
+          postId: plan.postId,
+          caption:
+            "Rain outside, chai inside ☕\nOur monsoon menu is finally here. Come in from the rain this week.",
+          hashtags: ["#punecafe", "#monsoonvibes", "#chailovers", "#fcroad", "#punefoodie"],
+        };
+        controller.enqueue(
+          encodeSSE("tool", {
+            ok: true,
+            name: "write_caption_and_hashtags",
+            input: {},
+            output: caption,
+          }),
+        );
       }
       if (firstTurn) {
         const output = {
