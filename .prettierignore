@@ -1,0 +1,12 @@
+node_modules
+pnpm-lock.yaml
+.next
+out
+build
+dist
+coverage
+apps/worker
+supabase/.temp
+supabase/.branches
+**/next-env.d.ts
+apps/web/AGENTS.md

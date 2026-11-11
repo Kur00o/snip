@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# testing
+coverage/
+.pytest_cache/
+
+# env & secrets — never commit real values
+.env
+.env.*
+!.env.example
+*.pem
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.ruff_cache/
+.mypy_cache/
+
+# worker media scratch
+apps/worker/.cache/
+apps/worker/tmp/
+*.mp4
+*.wav
+models/
+
+# supabase cli
+supabase/.temp/
+supabase/.branches/
+
+# vercel
+.vercel
+
+# misc
+.DS_Store
+*.log

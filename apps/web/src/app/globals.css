@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/*
+ * Snip design tokens.
+ * Brand teal #0F9D8F is for fills, glows and large text. Body-size text on light surfaces
+ * uses teal-700 (5.2:1 on white) to meet WCAG AA. Labels on teal fills use ink (5.3:1).
+ */
+@theme {
+  --color-teal-300: #2cc3b3;
+  --color-teal-500: #0f9d8f;
+  --color-teal-700: #0a7a6f;
+  --color-ink: #14162b;
+  --color-ink-800: #1d2040;
+  --color-lime: #c6f432;
+  --color-paper: #faf8f5;
+  --color-line: #e6e2dc;
+  --color-muted: #6b6f80;
+  --color-muted-on-ink: #9a9db0;
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+
+  --shadow-soft: 0 1px 2px rgb(20 22 43 / 0.04), 0 8px 24px -8px rgb(20 22 43 / 0.12);
+  --shadow-glow: 0 0 0 1px rgb(15 157 143 / 0.35), 0 12px 40px -8px rgb(15 157 143 / 0.55);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-snip: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Semantic surface tokens; the dashboard switches these for dark mode. */
+:root {
+  --surface: var(--color-paper);
+  --surface-raised: #ffffff;
+  --text: var(--color-ink);
+  --text-muted: var(--color-muted);
+  --border: var(--color-line);
+  --link: var(--color-teal-700);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --surface: var(--color-ink);
+  --surface-raised: var(--color-ink-800);
+  --text: var(--color-paper);
+  --text-muted: var(--color-muted-on-ink);
+  --border: rgb(250 248 245 / 0.12);
+  --link: var(--color-teal-300);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: var(--color-ink);
+    --surface-raised: var(--color-ink-800);
+    --text: var(--color-paper);
+    --text-muted: var(--color-muted-on-ink);
+    --border: rgb(250 248 245 / 0.12);
+    --link: var(--color-teal-300);
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  body {
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-teal-500);
+    outline-offset: 3px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

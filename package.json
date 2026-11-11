@@ -1,0 +1,25 @@
+{
+  "name": "snip",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Snip — an AI social media agent for small businesses and creators.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @snip/web dev",
+    "build": "pnpm --filter @snip/web build",
+    "lint": "pnpm -r --parallel lint",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "prettier": "^3.10.0",
+    "prettier-plugin-tailwindcss": "^0.8.1"
+  }
+}
