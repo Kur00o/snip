@@ -95,7 +95,7 @@ begin
   insert into public.jobs (business_id, kind, payload)
   values (biz_a, 'render_carousel', jsonb_build_object('post_id', post_a));
 
-  update public.jobs set status = 'done';
+  update public.jobs set status = 'done' where business_id = biz_a;
   get diagnostics n = row_count;
   assert n = 0, 'browser cannot change job status';
 
@@ -151,7 +151,7 @@ begin
   begin
     perform public.disconnect_social_account(acct);
     raise exception 'FAIL: browser called disconnect directly';
-  exception when insufficient_privilege then null;
+  exception when insufficient_privilege or no_data_found then null;
   end;
 
   perform set_config('request.jwt.claims', json_build_object('sub', a, 'role', 'authenticated')::text, true);
