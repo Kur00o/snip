@@ -30,11 +30,11 @@ uv run uvicorn app.main:app --reload --port 8000
 
 ## 3. Supabase
 
-The hosted project is named `snip` and lives in the Mumbai region (`ap-south-1`). Migrations live in `supabase/migrations` and Edge Functions live in `supabase/functions`. Use the CLI through npx:
+The hosted project is named `snip` (ref `vojyxsrlxxrmusrabeem`, URL `https://vojyxsrlxxrmusrabeem.supabase.co`) and lives in the Mumbai region (`ap-south-1`). Migrations live in `supabase/migrations` and Edge Functions live in `supabase/functions`. Use the CLI through npx:
 
 ```bash
 npx supabase login
-npx supabase link --project-ref <project-ref>
+npx supabase link --project-ref vojyxsrlxxrmusrabeem
 npx supabase db push               # apply migrations
 npx supabase functions deploy publish
 ```
