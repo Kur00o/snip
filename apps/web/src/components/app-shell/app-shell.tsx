@@ -1,14 +1,22 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { MobileSignOut } from "./account-menu";
-import { SidebarNav, TabBar } from "./nav-links";
+import { SidebarNav, SidebarNavItems, TabBar, TabBarItems } from "./nav-links";
 
 /**
  * Dashboard chrome: ink sidebar on desktop, top bar + bottom tabs on mobile.
  * `account` is the sidebar's account card, passed in so it can stream separately.
  */
-export function AppShell({ account, children }: { account: ReactNode; children: ReactNode }) {
+export function AppShell({
+  account,
+  recent,
+  children,
+}: {
+  account: ReactNode;
+  recent?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className="flex min-h-svh flex-1">
       <a
@@ -29,8 +37,11 @@ export function AppShell({ account, children }: { account: ReactNode; children: 
         <Link href="/home" className="mb-8 px-3" aria-label="Snip home">
           <BrandMark onDark />
         </Link>
-        <nav aria-label="Main" className="flex-1">
-          <SidebarNav />
+        <nav aria-label="Main" className="min-h-0 flex-1 overflow-y-auto">
+          <Suspense fallback={<SidebarNavItems />}>
+            <SidebarNav />
+          </Suspense>
+          {recent}
         </nav>
         {account}
       </aside>
@@ -51,7 +62,9 @@ export function AppShell({ account, children }: { account: ReactNode; children: 
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
-        <TabBar />
+        <Suspense fallback={<TabBarItems />}>
+          <TabBar />
+        </Suspense>
       </nav>
     </div>
   );

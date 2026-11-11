@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from "react";
 import { AccountMenu, AccountMenuSkeleton } from "@/components/app-shell/account-menu";
 import { AppShell } from "@/components/app-shell/app-shell";
+import { RecentChats } from "@/components/app-shell/recent-chats";
 
 /**
  * The chrome is static and prerendered; anything that reads the session (account menu,
@@ -12,6 +13,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       account={
         <Suspense fallback={<AccountMenuSkeleton />}>
           <AccountMenu />
+        </Suspense>
+      }
+      recent={
+        <Suspense fallback={null}>
+          <RecentChats />
         </Suspense>
       }
     >

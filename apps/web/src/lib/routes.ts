@@ -4,6 +4,7 @@ export const PROTECTED_PREFIXES = [
   "/onboarding",
   "/brand",
   "/accounts",
+  "/chat",
   "/create",
   "/calendar",
   "/insights",

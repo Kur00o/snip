@@ -12,5 +12,12 @@ export default function DevHome() {
     },
     connectedAccounts: 0,
   });
-  return <HomeView businessName="Chai Point" firstName="Asha Kulkarni" checklist={checklist} />;
+  return (
+    <HomeView
+      businessName="Chai Point"
+      firstName="Asha Kulkarni"
+      checklist={checklist}
+      endpoint="/api/dev/chat"
+    />
+  );
 }

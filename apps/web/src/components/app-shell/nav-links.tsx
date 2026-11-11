@@ -13,14 +13,23 @@ export const NAV_ITEMS = [
   { href: "/accounts", label: "Accounts", icon: Link2, soon: false },
 ] as const;
 
-function useActive() {
+type ActiveCheck = (href: string) => boolean;
+const none: ActiveCheck = () => false;
+
+function useActive(): ActiveCheck {
   const pathname = usePathname();
-  return (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  return (href) => pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Desktop sidebar links (on the ink sidebar). */
+/**
+ * Desktop sidebar links (on the ink sidebar). The pathname is request data, so the
+ * shell renders `SidebarNavItems` as a static fallback and swaps in the active state.
+ */
 export function SidebarNav() {
-  const isActive = useActive();
+  return <SidebarNavItems isActive={useActive()} />;
+}
+
+export function SidebarNavItems({ isActive = none }: { isActive?: ActiveCheck }) {
   return (
     <ul className="space-y-1">
       {NAV_ITEMS.map(({ href, label, icon: Icon, soon }) => {
@@ -68,7 +77,10 @@ export function SidebarNav() {
 
 /** Mobile bottom tab bar: only the live destinations. */
 export function TabBar() {
-  const isActive = useActive();
+  return <TabBarItems isActive={useActive()} />;
+}
+
+export function TabBarItems({ isActive = none }: { isActive?: ActiveCheck }) {
   return (
     <ul className="grid grid-cols-3">
       {NAV_ITEMS.filter((i) => !i.soon).map(({ href, label, icon: Icon }) => {

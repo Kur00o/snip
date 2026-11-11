@@ -2,6 +2,30 @@
 
 Short notes on choices that aren't obvious from the code. Newest first.
 
+## Phase 4 — Agent core (2026-11-12)
+
+- **One router for every model call** (`packages/agent/src/llm/router.ts`). It speaks the OpenAI chat format through the `openai` SDK pointed at each provider's OpenAI-compatible URL. Switching models means changing an env var, or one line in `providers.ts`.
+  - **Gemini** (`generativelanguage.googleapis.com/v1beta/openai/`) handles orchestration, chat and vision. It defaults to `gemini-3.8-flash` with `gemini-2.5-flash` as fallback, using `reasoning_effort: low` to keep replies fast.
+  - **NVIDIA API Catalogue** (`integrate.api.nvidia.com/v1`) handles bulk text. It defaults to `nvidia/llama-3.3-nemotron-super-49b-v1.5`, then `meta/llama-3.1-70b-instruct`. The free tier is about 40 requests a minute.
+  - **Ollama** is only used when `OLLAMA_MODEL` is set.
+- **Fallback rules.**
+  - 429 (rate limit), 401/403 and 400 → next provider.
+  - 404 (unknown model) → next model on the same provider.
+  - 5xx or network error → retry once with backoff, then the next provider.
+  - Once any text has been streamed, the router never switches model, so a reply can't change voice halfway through.
+- **The orchestrator** (`runAgent`) streams text, runs tool calls with Zod-validated input and output, and returns tool errors to the model so it can correct itself. It stops after 4 steps, or after a UI tool. The system prompt carries the brand brief and the one-question rule.
+- **Phase 4 tools.**
+  - `offer_options` shows 2 to 4 tappable choices and ends the turn; the user's tap becomes their next message.
+  - The brand context loader reads the business, the brand kit and the last 5 posts on every turn.
+  - `plan_carousel` and `write_caption_and_hashtags` arrive in Phase 5. Until then, the prompt tells the agent to write text versions and say the studio is coming.
+- **Streaming.** `POST /api/chat` returns Server-Sent Events (`meta`, `delta`, `tool`, `done`, `error`). The client reads them with `fetch` (EventSource can't POST).
+  - The user message is saved before the model runs.
+  - The assistant reply is saved with `model_used` and the tool outcomes.
+  - Each turn sends at most the last 20 messages, to keep free-tier prompts small.
+  - Each business can send at most 8 messages a minute.
+- **URLs.** The home page becomes the chat. After the first reply starts, the address changes to `/chat/<id>` (`history.replaceState`, so streaming isn't interrupted). The sidebar lists recent chats.
+- **Where keys live.** Only on the server (`GEMINI_API_KEY`, `NVIDIA_API_KEY`), never sent to the browser. If no key is set, the chat says so plainly.
+
 ## Phase 3 — Auth and onboarding (2026-11-12)
 
 - **Auth stays on Supabase**, not Firebase. Supabase already does free Google + email sign-in, the RLS policies expect `auth.uid()`, and Firebase's Google provider never returns the refresh tokens that scheduled YouTube uploads need.

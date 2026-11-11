@@ -1,29 +1,28 @@
+import { ChatScreen } from "@/components/chat/chat-screen";
 import type { ChecklistItem } from "@/lib/checklist";
 import { starterTemplates } from "@/lib/starters";
-import { HomeComposer } from "./home-composer";
 import { SetupChecklist } from "./setup-checklist";
 
-type Props = { businessName: string; firstName: string | null; checklist: ChecklistItem[] };
+type Props = {
+  businessName: string;
+  firstName: string | null;
+  checklist: ChecklistItem[];
+  /** Override the chat endpoint (dev previews use a mock). */
+  endpoint?: string;
+};
 
-export function HomeView({ businessName, firstName, checklist }: Props) {
+export function HomeView({ businessName, firstName, checklist, endpoint }: Props) {
   return (
-    <div className="mx-auto w-full max-w-5xl">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-teal-700">
-            {firstName ? `Hi ${firstName.split(" ")[0]} · ` : ""}
-            {businessName}
-          </p>
-          <h1 className="mt-2 mb-8 text-[clamp(2rem,1.3rem+2.6vw,3.25rem)] leading-[1] font-semibold tracking-[-0.045em] text-ink">
-            What are we making today?
-          </h1>
-          <HomeComposer starters={starterTemplates(businessName)} />
-        </div>
-        <aside className="lg:pt-[6.5rem]" aria-label="Setup">
-          <SetupChecklist items={checklist} />
-        </aside>
-      </div>
-    </div>
+    <ChatScreen
+      endpoint={endpoint}
+      syncUrl={!endpoint}
+      empty={{
+        eyebrow: `${firstName ? `Hi ${firstName.split(" ")[0]} · ` : ""}${businessName}`,
+        title: "What are we making today?",
+        starters: starterTemplates(businessName),
+        aside: <SetupChecklist items={checklist} />,
+      }}
+    />
   );
 }
 
