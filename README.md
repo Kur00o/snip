@@ -15,7 +15,7 @@ Student project. The entire stack runs at **₹0** on free tiers and open-source
 | Phase | Scope                                                                        | Status |
 | ----- | ---------------------------------------------------------------------------- | ------ |
 | 1     | Setup: repo, Supabase, Vercel, monorepo scaffold                             | ✅     |
-| 2     | Database: migrations, RLS, Storage, Vault, seed templates                    | ⏳     |
+| 2     | Database: migrations, RLS, Storage, Vault, seed templates                    | ✅     |
 | 3     | Auth and onboarding, brand kit, setup checklist                              |        |
 | 4     | Agent core: LLM router, orchestrator, streaming chat home                    |        |
 | 5     | Carousels: tools, HTML templates, Playwright worker, studio                  |        |
@@ -36,7 +36,8 @@ apps/web            Next.js dashboard and landing page
 apps/worker         Python FastAPI render worker (uv)
 packages/agent      Orchestrator, tools and LLM router
 packages/templates  HTML carousel templates with editable slots
-supabase/           migrations, Edge Functions, CLI config
+packages/db         Supabase types, status enums, storage path helpers
+supabase/           migrations, Edge Functions, SQL tests, CLI config
 docs/               architecture, setup guide, decisions
 ```
 

@@ -10,3 +10,4 @@ supabase/.temp
 supabase/.branches
 **/next-env.d.ts
 apps/web/AGENTS.md
+packages/db/src/database.types.ts

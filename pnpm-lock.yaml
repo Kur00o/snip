@@ -23,6 +23,9 @@ importers:
       '@snip/agent':
         specifier: workspace:*
         version: link:../../packages/agent
+      '@snip/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@snip/templates':
         specifier: workspace:*
         version: link:../../packages/templates
@@ -62,6 +65,31 @@ importers:
         version: 5.9.3
 
   packages/agent:
+    dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.39.5
+        version: 9.39.5
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      eslint:
+        specifier: ^9
+        version: 9.39.5(jiti@2.7.0)
+      typescript:
+        specifier: ^5.9
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.72.2
+        version: 8.72.2(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@types/node@22.20.5)(vite@8.3.8(@types/node@22.20.5)(jiti@2.7.0))
+
+  packages/db:
     dependencies:
       zod:
         specifier: ^4.6.7

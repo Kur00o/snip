@@ -2,6 +2,29 @@
 
 Short notes on choices that aren't obvious from the code. Newest first.
 
+## Phase 2 — Database (2026-11-11)
+
+Reading the ER diagram:
+
+- `posts.template_id` is **nullable** (the diagram's line says "exactly one", but posts made from scratch have no template).
+- `posts.conversation_id` and `clips.shot_id` are **nullable foreign keys**. The diagram has no line for them.
+- Every table gets `created_at`, and rows that get edited also get `updated_at` (kept current by a trigger).
+- `text_array` → `text[]`, `float` → `double precision`. `shots.duration_sec` and `clips.duration_sec` are both `double precision`.
+- `templates.business_id` is **nullable**: null means a system template everyone can read; a value means the business's own template.
+
+Access control:
+
+- **`business_id` is on every brand-owned table**, children included. RLS is then one check per table: `business_id in (select private.my_business_ids())`. The function runs once per query, not once per row.
+- **Composite foreign keys** such as `(post_id, business_id) → posts(id, business_id)` mean a child row can never point at another business's parent. The smoke test checks this.
+- **`public.users`** is filled by a trigger on `auth.users`. A trigger on `businesses` creates the one `brand_kits` row each business gets.
+- **Server-only writes.** Browsers cannot write these: `social_accounts`, `post_insights`, job status, and any `schedules` status other than `pending`. The OAuth callback, the worker and the Edge Functions write them with the secret key.
+- **OAuth tokens are kept in Vault.** `social_accounts.token_secret_id` points at the Vault secret, and that column is not granted to browser roles. `set_social_token`, `get_social_token` and `disconnect_social_account` are executable by `service_role` only.
+- **Job queue.** `claim_job(kinds)` uses `FOR UPDATE SKIP LOCKED`, sets `locked_at` and re-claims jobs whose lock is stale (over 15 min old). `complete_job(id, error)` retries up to 3 times, then marks the job `failed`. The browser can queue `render_carousel`, `edit_reel` and `transcribe` jobs; it cannot queue `publish` jobs.
+- **Storage.** There are four private buckets: `brand-assets` (10 MB), `clips`, `renders` and `templates`. `clips` and `renders` allow 50 MB per file, the free-tier maximum. Paths start with `<business_id>/`, and policies compare that folder against the caller's businesses. Files under `templates/system/` are readable by any signed-in user. SVG uploads are blocked, because an SVG can carry script.
+- **Realtime** is on for `jobs`, `posts`, `slides` and `schedules`, so the studio and calendar update live. RLS still applies to these events.
+- **pg_cron and pg_net** are enabled now. The every-minute publish job and the daily insights job are scheduled in Phases 6 and 9, once their Edge Functions exist.
+- **`@snip/db`** is a small extra workspace package. It holds the generated `Database` types, Zod enums that mirror the CHECK constraints, and a safe `businessPath()` helper. Web, agent and Edge Functions share it.
+
 ## Phase 1 — Setup (2026-11-11)
 
 - **Monorepo with pnpm workspaces** (`apps/web`, `packages/*`). The Python worker sits in `apps/worker` and is managed by `uv`, outside the pnpm workspace. We skipped Turborepo: with three JS packages it adds config without much benefit.
@@ -13,12 +36,3 @@ Short notes on choices that aren't obvious from the code. Newest first.
   - On dark surfaces, teal text uses `teal-300 #2CC3B3` (8.1:1 on ink).
 - **Supabase key naming** follows Supabase's current key types: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for the browser and `SUPABASE_SECRET_KEY` for the server only.
 - **Vercel** is connected by importing the GitHub repo in the Vercel dashboard (root directory `apps/web`). It then deploys on every push to `main`.
-
-## Open for Phase 2 — reading the ER diagram
-
-- `posts.template_id` is marked nullable, but the relationship line says "exactly one". → We make it **nullable**, because posts made from scratch have no template.
-- `posts.conversation_id` and `clips.shot_id` have no relationship line on the diagram. → We add both as **nullable foreign keys**.
-- Many tables have no `created_at`. → We add `created_at` (and `updated_at` where rows get edited) everywhere, as the brief asks for timestamptz throughout.
-- `text_array` → `text[]`. `float` → `double precision`. `shots.duration_sec` is an int while `clips.duration_sec` is a float. → Both become **double precision**.
-- `templates` has no `business_id`. → We add a **nullable** `business_id`: null means a system template that everyone can read, and a value means a custom template that only its owner can see.
-- RLS on child tables (`slides`, `shots`, `messages`, …) needs to reach `businesses`. → This is still open (see the Phase 1 report).

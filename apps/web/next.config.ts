@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   // Workspace packages ship TypeScript source; Next compiles them.
-  transpilePackages: ["@snip/agent", "@snip/templates"],
+  transpilePackages: ["@snip/agent", "@snip/db", "@snip/templates"],
   turbopack: {
     rules: {
       "*.css": {

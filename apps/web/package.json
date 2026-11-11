@@ -13,6 +13,7 @@
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
     "@snip/agent": "workspace:*",
+    "@snip/db": "workspace:*",
     "@snip/templates": "workspace:*",
     "next": "16.4.6",
     "react": "19.3.0",
